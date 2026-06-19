@@ -39,7 +39,30 @@ What makes it different from generic "Go best practices": **every non-trivial cl
 
 ## Install
 
-These are plain [Agent Skills](https://agentskills.io). To make a Claude Code agent auto-discover and trigger them, symlink each into `~/.claude/skills/`:
+> Replace `OWNER` below with your GitHub account/org once this repo is published.
+> The URL used throughout is `https://github.com/OWNER/god-tier-go-skills`.
+
+**Install with the [skills](https://skills.sh/) CLI** (universal, works with any [Agent Skills](https://agentskills.io)-compatible tool):
+
+```bash
+npx skills add https://github.com/OWNER/god-tier-go-skills --all
+# or a single skill:
+npx skills add https://github.com/OWNER/god-tier-go-skills --skill go-performance
+```
+
+<!-- prettier-ignore-start -->
+
+<details>
+<summary>Claude Code</summary>
+
+These are plain Agent Skills (no plugin packaging), so install them by cloning into the discovery directory:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git /tmp/god-tier-go-skills
+cp -R /tmp/god-tier-go-skills/skills/* ~/.claude/skills/
+```
+
+Or, from a local checkout, symlink each skill so it stays in sync with the repo:
 
 ```bash
 cd god-tier-go-skills/skills
@@ -50,7 +73,100 @@ for s in go-clean-code go-naming go-function-design go-structs-interfaces \
 done
 ```
 
-(Or copy instead of symlink.) Symlinks keep the live skill in sync with this repo.
+Claude Code auto-discovers skills from `~/.claude/skills/` and `.claude/skills/`.
+
+</details>
+
+<details>
+<summary>Openclaw</summary>
+
+Copy skills into the cross-client discovery directory:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.openclaw/skills/god-tier-go-skills
+# or in workspace:
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.openclaw/workspace/skills/god-tier-go-skills
+```
+
+</details>
+
+<details>
+<summary>Gemini CLI</summary>
+
+```bash
+gemini extensions install https://github.com/OWNER/god-tier-go-skills
+```
+
+Update with `gemini extensions update god-tier-go-skills`.
+
+</details>
+
+<details>
+<summary>Cursor</summary>
+
+Copy skills into the cross-client discovery directory:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.cursor/skills/god-tier-go-skills
+```
+
+Cursor auto-discovers skills from `.agents/skills/` and `.cursor/skills/`.
+
+</details>
+
+<details>
+<summary>Copilot</summary>
+
+Copy skills into the cross-client discovery directory:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.copilot/skills/god-tier-go-skills
+```
+
+Copilot auto-discovers skills from `.copilot/skills/`.
+
+</details>
+
+<details>
+<summary>OpenCode</summary>
+
+Copy skills into the cross-client discovery directory:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
+```
+
+OpenCode auto-discovers skills from `.agents/skills/`, `.opencode/skills/`, and `.claude/skills/`.
+
+</details>
+
+<details>
+<summary>Codex (OpenAI)</summary>
+
+Clone into the cross-client discovery path:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
+```
+
+Codex auto-discovers skills from `~/.agents/skills/` and `.agents/skills/`. Update with `cd ~/.agents/skills/god-tier-go-skills && git pull`.
+
+</details>
+
+<details>
+<summary>Antigravity</summary>
+
+Clone into the cross-client discovery path:
+
+```bash
+git clone https://github.com/OWNER/god-tier-go-skills.git ~/.antigravity/skills/god-tier-go-skills
+```
+
+Update with `cd ~/.antigravity/skills/god-tier-go-skills && git pull`.
+
+</details>
+
+<!-- prettier-ignore-end -->
 
 ## How it works
 

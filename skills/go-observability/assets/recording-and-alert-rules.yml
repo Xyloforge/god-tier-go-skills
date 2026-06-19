@@ -1,0 +1,48 @@
+# Prometheus recording + alerting rules for a Go service instrumented with the
+# RED method (Rate, Errors, Duration). Assumes these metrics exist:
+#   http_requests_total{job, route, status}        (counter)
+#   http_request_duration_seconds_bucket{job,route} (histogram)
+#
+# Load via prometheus.yml:  rule_files: [ "recording-and-alert-rules.yml" ]
+groups:
+  - name: service-red-recording
+    interval: 30s
+    rules:
+      # Request rate per route (req/s), averaged over 5m.
+      - record: job:http_requests:rate5m
+        expr: sum by (job, route) (rate(http_requests_total[5m]))
+
+      # Error ratio (5xx) per route.
+      - record: job:http_requests_errors:ratio5m
+        expr: |
+          sum by (job, route) (rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum by (job, route) (rate(http_requests_total[5m]))
+
+      # p99 latency per route from the histogram buckets.
+      - record: job:http_request_duration_seconds:p99
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (job, route, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+
+  - name: service-red-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: job:http_requests_errors:ratio5m > 0.05
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.route }}"
+          description: "{{ $labels.job }} route {{ $labels.route }} error ratio is {{ $value | humanizePercentage }} (>5%) for 10m."
+
+      - alert: HighLatencyP99
+        expr: job:http_request_duration_seconds:p99 > 1
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "p99 latency >1s on {{ $labels.route }}"
+          description: "{{ $labels.job }} route {{ $labels.route }} p99 is {{ $value }}s for 10m."

@@ -1,0 +1,10 @@
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Go build/test artifacts (from copyable assets, if ever run here)
+bin/
+coverage.out
+*.test

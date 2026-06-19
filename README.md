@@ -1,5 +1,10 @@
 # God-Tier Go
 
+<p align="center">
+  <!-- Cover banner. Generate the image with docs/assets/cover-prompt.md and save it as docs/assets/cover.png -->
+  <img src="docs/assets/cover.png" alt="God-Tier Go — citation-backed Go agent skills" width="100%">
+</p>
+
 > Agent skills for writing **quality, high-performance, idiomatic Go** — every rule backed by a citation to real production code.
 
 ![skills](https://img.shields.io/badge/skills-12-blue) ![citations](https://img.shields.io/badge/citations-verified-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -36,6 +41,62 @@ What makes it different from generic "Go best practices": **every non-trivial cl
 | [go-performance](skills/go-performance/SKILL.md) | Benchmark first, `sync.Pool` reuse, preallocation, escape analysis, zero-copy. |
 | [go-observability](skills/go-observability/SKILL.md) | Prometheus metrics + naming, structured `slog`, contextual logging, tracing. |
 | [go-testing](skills/go-testing/SKILL.md) | Table-driven subtests, `t.Parallel`, benchmarks, fuzzing, golden files. |
+
+## Skill map
+
+These skills are **atomic, cross-referencing units**. Load `go-clean-code` first — it routes to every specialist; the specialists cross-link where their concerns touch. Installing a subset still works, but the full set gives a consistent view.
+
+```mermaid
+flowchart TB
+    CC(["⭐ go-clean-code<br/><i>load first · routes everything</i>"]):::hub
+
+    subgraph FOUND["🧱 Foundations"]
+        direction LR
+        NM["go-naming"]
+        FD["go-function-design"]
+        SI["go-structs-interfaces"]
+        PL["go-project-layout"]
+    end
+
+    subgraph RUN["🛡️ Correctness and Runtime"]
+        direction LR
+        EH["go-error-handling"]
+        CX["go-context"]
+        CN["go-concurrency"]
+        SEC["go-security"]
+    end
+
+    subgraph PERF["🚀 Performance and Operability"]
+        direction LR
+        PFx["go-performance"]
+        OB["go-observability"]
+        TS["go-testing"]
+    end
+
+    CC --> NM & FD & SI & PL
+    CC --> EH & CX & CN & SEC
+    CC --> PFx & OB & TS
+
+    %% strongest specialist cross-links (→ See)
+    NM -.-> FD
+    FD <--> SI
+    CX --> CN
+    EH <--> CN
+    PFx <--> CN
+    PFx <--> TS
+    SEC --> EH
+    OB --> EH
+
+    classDef hub fill:#1f6feb,stroke:#0b3d91,color:#ffffff,font-weight:bold;
+    classDef found fill:#e8f0fe,stroke:#1f6feb,color:#0b3d91;
+    classDef run fill:#fff4e6,stroke:#d97706,color:#7c2d12;
+    classDef perf fill:#e7f9f0,stroke:#059669,color:#064e3b;
+    class NM,FD,SI,PL found;
+    class EH,CX,CN,SEC run;
+    class PFx,OB,TS perf;
+```
+
+Solid arrows = `go-clean-code` routing; dashed/short arrows = the strongest specialist `→ See` cross-links. Full boundary map in [skills/README.md](skills/README.md).
 
 ## Install
 

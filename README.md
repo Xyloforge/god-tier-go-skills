@@ -48,26 +48,23 @@ These skills are **atomic, cross-referencing units**. Load `go-clean-code` first
 
 ```mermaid
 flowchart TB
-    CC(["⭐ go-clean-code<br/><i>load first · routes everything</i>"]):::hub
+    CC["go-clean-code (load first)"]
 
-    subgraph FOUND["🧱 Foundations"]
-        direction LR
+    subgraph FOUND["Foundations"]
         NM["go-naming"]
         FD["go-function-design"]
         SI["go-structs-interfaces"]
         PL["go-project-layout"]
     end
 
-    subgraph RUN["🛡️ Correctness and Runtime"]
-        direction LR
+    subgraph RUN["Correctness and Runtime"]
         EH["go-error-handling"]
         CX["go-context"]
         CN["go-concurrency"]
         SEC["go-security"]
     end
 
-    subgraph PERF["🚀 Performance and Operability"]
-        direction LR
+    subgraph PERF["Performance and Operability"]
         PFx["go-performance"]
         OB["go-observability"]
         TS["go-testing"]
@@ -77,7 +74,6 @@ flowchart TB
     CC --> EH & CX & CN & SEC
     CC --> PFx & OB & TS
 
-    %% strongest specialist cross-links (→ See)
     NM -.-> FD
     FD <--> SI
     CX --> CN
@@ -87,10 +83,11 @@ flowchart TB
     SEC --> EH
     OB --> EH
 
-    classDef hub fill:#1f6feb,stroke:#0b3d91,color:#ffffff,font-weight:bold;
+    classDef hub fill:#1f6feb,stroke:#0b3d91,color:#ffffff;
     classDef found fill:#e8f0fe,stroke:#1f6feb,color:#0b3d91;
     classDef run fill:#fff4e6,stroke:#d97706,color:#7c2d12;
     classDef perf fill:#e7f9f0,stroke:#059669,color:#064e3b;
+    class CC hub;
     class NM,FD,SI,PL found;
     class EH,CX,CN,SEC run;
     class PFx,OB,TS perf;
@@ -100,15 +97,14 @@ Solid arrows = `go-clean-code` routing; dashed/short arrows = the strongest spec
 
 ## Install
 
-> Replace `OWNER` below with your GitHub account/org once this repo is published.
-> The URL used throughout is `https://github.com/OWNER/god-tier-go-skills`.
+> Repo: `https://github.com/Xyloforge/god-tier-go-skills`.
 
 **Install with the [skills](https://skills.sh/) CLI** (universal, works with any [Agent Skills](https://agentskills.io)-compatible tool):
 
 ```bash
-npx skills add https://github.com/OWNER/god-tier-go-skills --all
+npx skills add https://github.com/Xyloforge/god-tier-go-skills --all
 # or a single skill:
-npx skills add https://github.com/OWNER/god-tier-go-skills --skill go-performance
+npx skills add https://github.com/Xyloforge/god-tier-go-skills --skill go-performance
 ```
 
 <!-- prettier-ignore-start -->
@@ -119,7 +115,7 @@ npx skills add https://github.com/OWNER/god-tier-go-skills --skill go-performanc
 These are plain Agent Skills (no plugin packaging), so install them by cloning into the discovery directory:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git /tmp/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git /tmp/god-tier-go-skills
 cp -R /tmp/god-tier-go-skills/skills/* ~/.claude/skills/
 ```
 
@@ -144,9 +140,9 @@ Claude Code auto-discovers skills from `~/.claude/skills/` and `.claude/skills/`
 Copy skills into the cross-client discovery directory:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.openclaw/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.openclaw/skills/god-tier-go-skills
 # or in workspace:
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.openclaw/workspace/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.openclaw/workspace/skills/god-tier-go-skills
 ```
 
 </details>
@@ -155,7 +151,7 @@ git clone https://github.com/OWNER/god-tier-go-skills.git ~/.openclaw/workspace/
 <summary>Gemini CLI</summary>
 
 ```bash
-gemini extensions install https://github.com/OWNER/god-tier-go-skills
+gemini extensions install https://github.com/Xyloforge/god-tier-go-skills
 ```
 
 Update with `gemini extensions update god-tier-go-skills`.
@@ -168,7 +164,7 @@ Update with `gemini extensions update god-tier-go-skills`.
 Copy skills into the cross-client discovery directory:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.cursor/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.cursor/skills/god-tier-go-skills
 ```
 
 Cursor auto-discovers skills from `.agents/skills/` and `.cursor/skills/`.
@@ -181,7 +177,7 @@ Cursor auto-discovers skills from `.agents/skills/` and `.cursor/skills/`.
 Copy skills into the cross-client discovery directory:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.copilot/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.copilot/skills/god-tier-go-skills
 ```
 
 Copilot auto-discovers skills from `.copilot/skills/`.
@@ -194,7 +190,7 @@ Copilot auto-discovers skills from `.copilot/skills/`.
 Copy skills into the cross-client discovery directory:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
 ```
 
 OpenCode auto-discovers skills from `.agents/skills/`, `.opencode/skills/`, and `.claude/skills/`.
@@ -207,7 +203,7 @@ OpenCode auto-discovers skills from `.agents/skills/`, `.opencode/skills/`, and 
 Clone into the cross-client discovery path:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.agents/skills/god-tier-go-skills
 ```
 
 Codex auto-discovers skills from `~/.agents/skills/` and `.agents/skills/`. Update with `cd ~/.agents/skills/god-tier-go-skills && git pull`.
@@ -220,7 +216,7 @@ Codex auto-discovers skills from `~/.agents/skills/` and `.agents/skills/`. Upda
 Clone into the cross-client discovery path:
 
 ```bash
-git clone https://github.com/OWNER/god-tier-go-skills.git ~/.antigravity/skills/god-tier-go-skills
+git clone https://github.com/Xyloforge/god-tier-go-skills.git ~/.antigravity/skills/god-tier-go-skills
 ```
 
 Update with `cd ~/.antigravity/skills/god-tier-go-skills && git pull`.

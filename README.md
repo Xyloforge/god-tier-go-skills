@@ -1,8 +1,8 @@
 # God-Tier Go
 
 <p align="center">
-  <!-- Cover banner. Generate the image with docs/assets/cover-prompt.md and save it as docs/assets/cover.png -->
-  <img src="docs/assets/cover.png" alt="God-Tier Go — citation-backed Go agent skills" width="100%">
+  <!-- Cover banner. Regenerate via docs/assets/cover-prompt.md if needed. -->
+  <img src="docs/assets/cover.webp" alt="God-Tier Go — citation-backed Go agent skills" width="100%">
 </p>
 
 > Agent skills for writing **quality, high-performance, idiomatic Go** — every rule backed by a citation to real production code.

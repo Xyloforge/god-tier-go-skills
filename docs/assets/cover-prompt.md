@@ -1,7 +1,8 @@
 # Cover banner — AI generation prompt
 
-Generate the banner, then save it as `docs/assets/cover.png` (the README points
-there). Target a wide banner ratio (**~3:1**, e.g. 1500×500). Best tools:
+Generate the banner, then save it as `docs/assets/cover.webp` (the README points
+there; `.png` works too — just update the README `<img src>`). Target a wide
+banner ratio (**~3:1**, e.g. 1500×500). Best tools:
 **Ideogram** or **GPT-4o/DALL·E 3** (they render text reliably);
 **Midjourney v6** for the richest art (add the title in post if its text is off).
 

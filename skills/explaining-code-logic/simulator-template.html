@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  BUSINESS-LOGIC SCENARIO SIMULATOR  (step-tracer template)
+  ----------------------------------------------------------------------------
+  Use this template (NOT the static one) for stateful business logic where the
+  output depends on INPUTS over time — reward engines, eligibility/state
+  machines, pricing, cycles, period accruals, anti-cheat checks, etc.
+
+  The reader learns by DOING: they edit the inputs (a scenario), the page
+  checks the config is consistent, then steps through the real pipeline one
+  operation at a time, showing exactly how each input flows into each tracked
+  variable and which stage flipped which flag.
+
+  HOW IT WORKS — the reusable pattern (this is what you port for any logic):
+    1. INPUT MODEL   — expose the function's inputs as editable controls.
+    2. CONSISTENCY   — validate the config before running; surface problems.
+    3. INSTRUMENTED PORT — re-implement the target logic in JS, but call
+                       snap(stage, plain, code) at every meaningful step and
+                       keep tracked vars in STATE. snap() records a snapshot.
+    4. REPLAY UI     — step/▶ through the recorded snapshots; the state table
+                       highlights what changed; the pipeline shows the stage.
+
+  The WORKED EXAMPLE below is a simplified "repeat-recharge" reward engine
+  (daily top-ups -> cycles -> per-cycle reward state). Swap the INPUT MODEL,
+  the CONSISTENCY rules, and the INSTRUMENTED PORT for your own logic; keep
+  snap()/STATE and the whole REPLAY UI as-is.
+
+  Edit points are marked   <!-- EDIT -->   and   // EDIT
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Repeat-Recharge Reward Engine — Interactive Trace</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --panel2:#1f242e; --text:#e6e8ec; --muted:#9aa3b2;
+    --border:#2a313c; --accent:#7c93ff;
+    --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --info:#38bdf8;
+    --eligible:#22c55e; --claimed:#64748b; --expired:#ef4444; --progress:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 22px 90px}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .what{font-size:17px;margin:0 0 14px}
+  .why{background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;
+    padding:12px 16px;color:var(--muted);margin:0 0 22px}
+  .why strong{color:var(--text)}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    position:sticky;top:0;z-index:30;background:rgba(15,17,21,.9);backdrop-filter:blur(8px);
+    padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:16px}
+  .toggle{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px}
+  .toggle button{border:0;background:transparent;color:var(--muted);padding:6px 13px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600}
+  .toggle button.active{background:var(--accent);color:#0b0d12}
+  .btn{border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn.primary{background:var(--accent);color:#0b0d12}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .spacer{flex:1}
+  .stepcount{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px}
+  @media(max-width:840px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px}
+  .card h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+  /* ---- INPUT MODEL ---- */
+  .cfg{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12px;color:var(--muted)}
+  .field input,.field select{background:#0b0d12;color:var(--text);border:1px solid var(--border);
+    border-radius:7px;padding:7px 9px;font-size:14px;width:120px}
+  .days{display:flex;gap:6px;flex-wrap:wrap}
+  .day{width:62px;border:1px solid var(--border);border-radius:8px;padding:6px;background:#0b0d12;text-align:center}
+  .day .d{font-size:11px;color:var(--muted)}
+  .day input{width:100%;border:0;background:transparent;color:var(--text);text-align:center;font-size:14px;outline:none}
+  .day.today{outline:2px solid var(--accent)}
+  .day.future{opacity:.5}
+
+  /* ---- CONSISTENCY BANNER ---- */
+  .check{display:flex;align-items:center;gap:8px;border-radius:8px;padding:9px 12px;font-size:13.5px;font-weight:600;margin-bottom:6px}
+  .check.ok{background:rgba(34,197,94,.12);color:var(--ok);border:1px solid rgba(34,197,94,.3)}
+  .check.bad{background:rgba(239,68,68,.12);color:var(--bad);border:1px solid rgba(239,68,68,.3)}
+
+  /* ---- PIPELINE ---- */
+  .pipe{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+  .stage{border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:12px;color:var(--muted);background:var(--panel2)}
+  .stage.active{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 2px rgba(124,147,255,.25)}
+  .stage.done{color:var(--text)}
+  .pipe .sep{color:var(--muted)}
+
+  /* ---- STATE TRACKER ---- */
+  table.state{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.state td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  table.state td.k{color:var(--muted);width:42%;font-family:"SF Mono",Menlo,monospace;font-size:12.5px}
+  table.state td.v{font-family:"SF Mono",Menlo,monospace}
+  tr.changed td{background:rgba(124,147,255,.12)}
+  tr.changed td.v{color:var(--accent)}
+
+  /* ---- STEP EXPLANATION ---- */
+  .step-desc{font-size:15px;margin:0 0 10px}
+  pre{background:#0b0d12;border:1px solid var(--border);border-radius:8px;padding:11px 13px;overflow-x:auto;margin:0}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+  .tech{display:none}
+  body.show-tech .tech{display:block}
+  .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;color:#0b0d12}
+  .tag.s0{background:var(--info)}.tag.s1{background:var(--accent)}.tag.s2{background:var(--warn)}
+  .tag.s3{background:var(--ok)}.tag.s4{background:var(--claimed)}
+
+  /* ---- OUTPUT ---- */
+  .cycles{display:flex;flex-direction:column;gap:8px}
+  .cyc{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-left-width:4px;border-radius:8px;padding:8px 12px;font-size:13.5px}
+  .cyc .pill{margin-left:auto;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;color:#0b0d12}
+  .cyc[data-state=eligible]{border-left-color:var(--eligible)} .pill.eligible{background:var(--eligible)}
+  .cyc[data-state=claimed]{border-left-color:var(--claimed)}  .pill.claimed{background:var(--claimed)}
+  .cyc[data-state=expired]{border-left-color:var(--expired)}  .pill.expired{background:var(--expired)}
+  .cyc[data-state=progress]{border-left-color:var(--progress)}.pill.progress{background:var(--progress)}
+  .cyc .muted{color:var(--muted)}
+
+  .term{border-bottom:1px dashed var(--accent);cursor:help;position:relative}
+  .term:hover::after{content:attr(data-def);position:absolute;left:0;bottom:130%;width:230px;
+    background:#0b0d12;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;
+    line-height:1.45;font-weight:400;color:var(--text);z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <!-- EDIT: title / what / why -->
+    <h1>Repeat-Recharge Reward Engine</h1>
+    <p class="what">Turns a player's daily top-ups into <strong>cycles</strong>, then decides each cycle's reward state: can claim, already claimed, expired, or still in progress.</p>
+    <div class="why"><strong>Why it's tricky:</strong> the answer depends on the inputs — how much was topped up, on which days, what "today" is, and what was already claimed. Edit the scenario on the left and step through to see exactly how each input changes the outcome.</div>
+  </header>
+
+  <div class="toolbar">
+    <span style="color:var(--muted);font-size:13px">Depth:</span>
+    <div class="toggle">
+      <button id="d-plain" class="active">Plain</button>
+      <button id="d-tech">Technical (code)</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="reset">⟲ Reset</button>
+    <button class="btn ghost" id="prev">◀ Back</button>
+    <button class="btn primary" id="next">Step ▶</button>
+    <button class="btn ghost" id="play">▶▶ Run</button>
+    <span class="stepcount" id="count">step 0 / 0</span>
+  </div>
+
+  <div class="grid2">
+
+    <!-- ============ LEFT: INPUTS + OUTPUT ============ -->
+    <div>
+      <div class="card">
+        <h3>1 · Scenario inputs <span class="term" data-def="These map 1:1 to the function arguments. Change them and re-run to test any case.">(the inputs)</span></h3>
+        <div class="cfg">
+          <div class="field"><label>Cycle length (days)</label><input id="in-cycle" type="number" min="1" value="3"></div>
+          <div class="field"><label>Min top-up / day</label><input id="in-min" type="number" min="0" value="100"></div>
+          <div class="field"><label>Today is day…</label>
+            <select id="in-today"></select>
+          </div>
+          <div class="field"><label>Claimed cycles (e.g. 1,2)</label><input id="in-claimed" type="text" value="1" style="width:140px"></div>
+        </div>
+        <label style="font-size:12px;color:var(--muted)">Daily top-up amounts — edit any cell:</label>
+        <div class="days" id="days"></div>
+      </div>
+
+      <div class="card">
+        <h3>Consistency check</h3>
+        <div id="check" class="check ok">✓</div>
+      </div>
+
+      <div class="card">
+        <h3>Result — reward state per cycle</h3>
+        <div class="cycles" id="output"><span class="muted" style="color:var(--muted)">Run the trace to compute results.</span></div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT: TRACE ============ -->
+    <div>
+      <div class="card">
+        <h3>2 · Pipeline</h3>
+        <div class="pipe" id="pipe"></div>
+      </div>
+
+      <div class="card">
+        <h3>3 · What this step does</h3>
+        <div id="step-desc" class="step-desc"><span style="color:var(--muted)">Press <b>Step ▶</b> to walk through the logic one operation at a time.</span></div>
+        <pre class="tech"><code id="step-code">// code for the current step appears here</code></pre>
+      </div>
+
+      <div class="card">
+        <h3>4 · Tracked state <span style="text-transform:none;font-weight:400">(highlighted = changed this step)</span></h3>
+        <table class="state"><tbody id="state"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ===========================================================================
+   PART A — THE INSTRUMENTED PORT  (replace this block for your own logic)
+   ---------------------------------------------------------------------------
+   Re-implement the target function in JS. The ONLY extra thing you do vs the
+   real code is: keep tracked variables on STATE, and call snap() whenever
+   something meaningful happens. snap() records a frozen snapshot the UI replays.
+   =========================================================================== */
+let STEPS = [];
+let STATE = {};
+function snap(stage, plain, code){
+  STEPS.push({ stage, plain, code, state: structuredClone(STATE) });
+}
+
+// EDIT: stage names for YOUR pipeline (index used by .tag/.stage styling)
+const STAGES = ["Validate","Chunk into cycles","Check each day","Decide reward state","Done"];
+
+// EDIT: re-implement your logic here, calling snap() at each step.
+function runEngine(input){
+  STEPS = []; STATE = {};
+  const { recharges, cycleLen, dailyMin, today, claimed } = input;
+
+  STATE.cycleLen = cycleLen; STATE.dailyMin = dailyMin; STATE.today = today;
+  snap(0, `Start. We have ${recharges.length} days of top-ups, a cycle is ${cycleLen} days, each day needs ≥ ${dailyMin}.`,
+    `const { recharges, cycleLen, dailyMin, today } = input;`);
+
+  // --- Stage 1: chunk into cycles (mirrors lodash chunk()) ---
+  const cycles = [];
+  for (let i = 0; i < recharges.length; i += cycleLen) cycles.push(recharges.slice(i, i + cycleLen));
+  STATE.cycleCount = cycles.length;
+  snap(1, `Slice the ${recharges.length} days into groups of ${cycleLen}. That makes ${cycles.length} cycle(s).`,
+    `const cycles = chunk(recharges, cycleLen); // ${cycles.length} cycles`);
+
+  // --- Stage 2 & 3: per cycle, check days then decide state ---
+  const results = [];
+  cycles.forEach((cycle, ci) => {
+    const cycleNo = ci + 1;
+    const startDay = ci * cycleLen + 1;
+    const endDay = startDay + cycle.length - 1;
+    STATE.currentCycle = cycleNo;
+    STATE.cycleDays = `day ${startDay}–${endDay}`;
+    STATE.fulfilled = undefined; STATE.rewardState = undefined;
+
+    // does this cycle reach into the future (not all days have happened yet)?
+    const hasFutureDay = endDay > today;
+    STATE.hasFutureDay = hasFutureDay;
+
+    let allMet = true;
+    for (let d = 0; d < cycle.length; d++){
+      const amount = cycle[d];
+      const dayNo = startDay + d;
+      const met = amount >= dailyMin;
+      STATE.checking = `day ${dayNo}: ${amount} ${met ? "≥" : "<"} ${dailyMin}`;
+      if (!met) allMet = false;
+      snap(2, `Cycle ${cycleNo}, day ${dayNo}: topped up ${amount}. Needed ${dailyMin} → ${met ? "meets it ✓" : "misses it ✗"}.`,
+        `if (recharge.money >= dailyMin) { /* day counts */ }  // day ${dayNo}: ${met}`);
+    }
+    STATE.fulfilled = allMet;
+    delete STATE.checking;
+
+    // decide the reward state (mirrors the toClaim/eligible/expired/alreadyClaimed flags)
+    let state;
+    if (hasFutureDay)          state = "progress";          // cycle not finished yet
+    else if (claimed.has(cycleNo)) state = "claimed";       // user already claimed it
+    else if (allMet)           state = "eligible";          // finished, met, unclaimed
+    else                       state = "expired";           // finished but conditions not met
+    STATE.rewardState = state;
+
+    const why = hasFutureDay ? "cycle still has upcoming days"
+      : claimed.has(cycleNo) ? "marked as already claimed"
+      : allMet ? "all days met the minimum and it's unclaimed"
+      : "cycle ended but a day missed the minimum";
+    snap(3, `Cycle ${cycleNo} → ${state.toUpperCase()} (${why}).`,
+      `reward.eligible = !hasFutureDay && allMet && !alreadyClaimed;\nreward.isExpired = !hasFutureDay && !allMet;  // → ${state}`);
+
+    results.push({ cycleNo, range:`day ${startDay}–${endDay}`, amounts:cycle, state, why });
+  });
+
+  delete STATE.currentCycle; delete STATE.cycleDays; delete STATE.fulfilled;
+  delete STATE.hasFutureDay; delete STATE.rewardState;
+  STATE.totalEligible = results.filter(r=>r.state==="eligible").length;
+  snap(4, `Done. ${STATE.totalEligible} cycle(s) are claimable right now.`,
+    `return results; // totalPlayable = ${STATE.totalEligible}`);
+
+  return results;
+}
+
+// EDIT: consistency rules for YOUR config. Return [] if OK, else list of problems.
+function checkConsistency(input){
+  const problems = [];
+  if (input.cycleLen < 1) problems.push("Cycle length must be at least 1 day.");
+  if (input.dailyMin < 0) problems.push("Minimum top-up can't be negative.");
+  if (input.recharges.some(n => Number.isNaN(n))) problems.push("Every day needs a numeric top-up amount.");
+  if (input.today < 1 || input.today > input.recharges.length) problems.push("‘Today’ must fall within the listed days.");
+  [...input.claimed].forEach(c => {
+    const maxCycle = Math.ceil(input.recharges.length / input.cycleLen);
+    if (c < 1 || c > maxCycle) problems.push(`Claimed cycle ${c} doesn't exist (there are ${maxCycle}).`);
+  });
+  return problems;
+}
+
+/* ===========================================================================
+   PART B — THE REPLAY UI  (generic — keep as-is for any logic)
+   =========================================================================== */
+const NUM_DAYS = 9;                                  // EDIT: how many day cells to show
+const $ = id => document.getElementById(id);
+let cursor = -1, results = [], playTimer = null;
+
+// build day input cells + today selector
+const daysEl = $("days");
+for (let i=1;i<=NUM_DAYS;i++){
+  const cell = document.createElement("div");
+  cell.className = "day"; cell.dataset.day = i;
+  cell.innerHTML = `<div class="d">day ${i}</div><input type="number" min="0" value="${[120,150,80,200,100,130,90,0,0][i-1] ?? 0}">`;
+  daysEl.appendChild(cell);
+}
+const todaySel = $("in-today");
+for (let i=1;i<=NUM_DAYS;i++){ const o=document.createElement("option"); o.value=i; o.textContent="day "+i; todaySel.appendChild(o); }
+todaySel.value = 6;
+
+function readInput(){
+  const recharges = [...daysEl.querySelectorAll("input")].map(i=>Number(i.value));
+  const claimed = new Set(($("in-claimed").value||"").split(",").map(s=>parseInt(s.trim(),10)).filter(n=>!Number.isNaN(n)));
+  return { recharges, cycleLen:Number($("in-cycle").value), dailyMin:Number($("in-min").value), today:Number(todaySel.value), claimed };
+}
+
+function renderConsistencyAndMarks(){
+  const input = readInput();
+  // mark today / future cells
+  daysEl.querySelectorAll(".day").forEach(c=>{
+    const d=Number(c.dataset.day);
+    c.classList.toggle("today", d===input.today);
+    c.classList.toggle("future", d>input.today);
+  });
+  const problems = checkConsistency(input);
+  const el = $("check");
+  if (problems.length){ el.className="check bad"; el.innerHTML = "✗ " + problems.join("  ·  "); }
+  else { el.className="check ok"; el.innerHTML = `✓ Config consistent — ${input.recharges.length} days, ${Math.ceil(input.recharges.length/input.cycleLen)} cycle(s) of ${input.cycleLen}, min ${input.dailyMin}/day, today=day ${input.today}.`; }
+  return problems.length===0;
+}
+
+function renderPipeline(stageIdx){
+  $("pipe").innerHTML = STAGES.map((s,i)=>
+    `<span class="stage ${i===stageIdx?'active':''} ${i<stageIdx?'done':''}">${i+1}. ${s}</span>`
+  ).join('<span class="sep">›</span>');
+}
+
+function renderState(curr, prev){
+  const keys = Object.keys(curr.state);
+  $("state").innerHTML = keys.map(k=>{
+    const changed = !prev || JSON.stringify(prev.state[k]) !== JSON.stringify(curr.state[k]);
+    const v = typeof curr.state[k]==="object" ? JSON.stringify(curr.state[k]) : String(curr.state[k]);
+    return `<tr class="${changed?'changed':''}"><td class="k">${k}</td><td class="v">${v}</td></tr>`;
+  }).join("") || `<tr><td class="k" style="color:var(--muted)">(nothing tracked yet)</td><td></td></tr>`;
+}
+
+function renderOutput(){
+  if (!results.length){ $("output").innerHTML = `<span style="color:var(--muted)">Run the trace to compute results.</span>`; return; }
+  $("output").innerHTML = results.map(r=>`
+    <div class="cyc" data-state="${r.state}">
+      <b>Cycle ${r.cycleNo}</b> <span class="muted">${r.range} · [${r.amounts.join(", ")}]</span>
+      <span class="pill ${r.state}">${r.state}</span>
+    </div>`).join("");
+}
+
+function showStep(i){
+  if (i<0){ // pre-run state
+    renderPipeline(-1);
+    $("step-desc").innerHTML = `<span style="color:var(--muted)">Press <b>Step ▶</b> to walk through the logic one operation at a time.</span>`;
+    $("step-code").textContent = "// code for the current step appears here";
+    $("state").innerHTML = "";
+    $("count").textContent = `step 0 / ${STEPS.length}`;
+    return;
+  }
+  const s = STEPS[i], prev = STEPS[i-1];
+  renderPipeline(s.stage);
+  $("step-desc").innerHTML = `<span class="tag s${s.stage}">${STAGES[s.stage]}</span> &nbsp; ${s.plain}`;
+  $("step-code").textContent = s.code;
+  renderState(s, prev);
+  $("count").textContent = `step ${i+1} / ${STEPS.length}`;
+  $("next").disabled = i>=STEPS.length-1;
+  $("prev").disabled = i<=0;
+}
+
+function run(){
+  stopPlay();
+  if (!renderConsistencyAndMarks()){ // invalid config: don't run
+    STEPS=[]; results=[]; cursor=-1; renderOutput(); showStep(-1); return;
+  }
+  results = runEngine(readInput());
+  renderOutput();
+  cursor = 0; showStep(0);
+}
+function stopPlay(){ if(playTimer){clearInterval(playTimer);playTimer=null;$("play").textContent="▶▶ Run";} }
+
+// wiring
+$("d-plain").onclick=()=>{document.body.classList.remove("show-tech");$("d-plain").classList.add("active");$("d-tech").classList.remove("active");};
+$("d-tech").onclick =()=>{document.body.classList.add("show-tech");$("d-tech").classList.add("active");$("d-plain").classList.remove("active");};
+$("reset").onclick = ()=>{ STEPS=[];results=[];cursor=-1;stopPlay();renderConsistencyAndMarks();renderOutput();showStep(-1); };
+$("next").onclick  = ()=>{ if(!STEPS.length) run(); else if(cursor<STEPS.length-1) showStep(++cursor); };
+$("prev").onclick  = ()=>{ if(cursor>0) showStep(--cursor); };
+$("play").onclick  = ()=>{
+  if(playTimer){stopPlay();return;}
+  if(!STEPS.length) run();
+  $("play").textContent="⏸ Pause";
+  playTimer=setInterval(()=>{ if(cursor>=STEPS.length-1){stopPlay();return;} showStep(++cursor); },700);
+};
+// any input change → refresh consistency + marks, invalidate the run
+[...daysEl.querySelectorAll("input"),$("in-cycle"),$("in-min"),$("in-claimed"),todaySel].forEach(el=>{
+  el.addEventListener("input",()=>{ STEPS=[];results=[];cursor=-1;stopPlay();renderConsistencyAndMarks();renderOutput();showStep(-1); });
+});
+
+// init
+renderConsistencyAndMarks();
+showStep(-1);
+</script>
+</body>
+</html>

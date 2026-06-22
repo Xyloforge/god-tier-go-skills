@@ -1,6 +1,6 @@
 # God-Tier Go
 
-A set of **twelve** Go skills for AI agents (and humans) who want to write
+A set of **fourteen** Go skills for AI agents (and humans) who want to write
 **quality, high-performance, idiomatic Go** — code no reviewer can question.
 
 What makes this set different from generic "Go best practices": **every
@@ -38,6 +38,13 @@ the exact file and line where a world-class team does it. No invented examples.
 | **[go-performance](go-performance/SKILL.md)** | Benchmark first, `sync.Pool` reuse, preallocation, escape analysis, zero-copy. | Touching a hot path or chasing allocations. |
 | **[go-observability](go-observability/SKILL.md)** | Prometheus metrics + naming, structured `slog`, contextual logging, tracing. | Adding metrics, logs, or traces. |
 | **[go-testing](go-testing/SKILL.md)** | Table-driven subtests, `t.Parallel`, benchmarks, fuzzing, golden files. | Writing any `_test.go` or benchmark. |
+
+**Review & understanding**
+
+| Skill | One-liner | Load when… |
+|-------|-----------|-----------|
+| **[go-adversarial-qa](go-adversarial-qa/SKILL.md)** | Break a function before prod does — Toddler (bad/empty/wrong-type input), Hoarder (scale/limits/frequency), Inversion (failing deps). Locates breaks; never fixes. | Reviewing/hardening a function or asked "what breaks this?" |
+| **[explaining-code-logic](explaining-code-logic/SKILL.md)** | Explain gnarly logic to a human with an interactive, input-driven step-tracer instead of a wall of text. | Onboarding someone to unfamiliar/complex logic. |
 
 ## How to use them
 

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  CODE-LOGIC EXPLAINER TEMPLATE
+  ----------------------------------------------------------------------------
+  This is a COMPLETE, RUNNABLE example that explains "binary search".
+  To explain different logic: keep the STRUCTURE and INTERACTIONS, swap the
+  CONTENT. The structure encodes four cognitive-science principles:
+
+    1. Cognitive Load  -> one chunk per numbered step, extraneous detail cut
+    2. Dual Coding     -> diagram nodes are COLOR-LINKED to their explanation
+    3. Analogy         -> one analogy card that mirrors the real mechanism
+    4. Progressive Disclosure -> Plain<->Technical toggle, collapsible steps,
+                                 jargon tooltips, predict-the-step prompt
+
+  Each place you must edit is marked with  <!-- EDIT: ... -->
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- EDIT: page title -->
+<title>How Binary Search Works</title>
+<style>
+  :root {
+    /* Chunk colors — each step + its diagram node share one color (Dual Coding) */
+    --c1: #2563eb;  /* blue   */
+    --c2: #059669;  /* green  */
+    --c3: #d97706;  /* amber  */
+    --c4: #dc2626;  /* red    */
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f242e;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --border: #2a313c;
+    --accent: #7c93ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 40px 24px 96px; }
+  header h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+
+  /* --- Top layer: the "what" and the "why" --------------------------- */
+  .what { font-size: 18px; color: var(--text); margin: 0 0 18px; }
+  .why {
+    background: var(--panel);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--muted);
+    margin: 0 0 28px;
+  }
+  .why strong { color: var(--text); }
+
+  /* --- Progressive disclosure: depth toggle -------------------------- */
+  .toolbar {
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(15,17,21,.85); backdrop-filter: blur(8px);
+    padding: 12px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .toolbar .label { color: var(--muted); font-size: 13px; }
+  .toggle { display: inline-flex; background: var(--panel-2); border-radius: 999px; padding: 3px; border: 1px solid var(--border); }
+  .toggle button {
+    border: 0; background: transparent; color: var(--muted);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .toggle button.active { background: var(--accent); color: #0b0d12; }
+
+  /* --- Analogy card -------------------------------------------------- */
+  .analogy {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; margin: 22px 0 28px;
+  }
+  .analogy .icon { font-size: 26px; line-height: 1; }
+  .analogy h3 { margin: 0 0 4px; font-size: 15px; }
+  .analogy p { margin: 0; color: var(--muted); }
+
+  /* --- Diagram (Dual Coding) ---------------------------------------- */
+  .diagram { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 28px; }
+  .diagram h3 { margin: 0 0 14px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .node {
+    border: 2px solid; border-radius: 10px; padding: 10px 14px; cursor: pointer;
+    background: var(--panel-2); font-weight: 600; font-size: 14px;
+    transition: transform .12s, box-shadow .12s; user-select: none;
+  }
+  .node:hover { transform: translateY(-2px); }
+  .node.dim { opacity: .35; }
+  .arrow { color: var(--muted); font-size: 18px; }
+  .n1 { border-color: var(--c1); color: var(--c1); }
+  .n2 { border-color: var(--c2); color: var(--c2); }
+  .n3 { border-color: var(--c3); color: var(--c3); }
+  .n4 { border-color: var(--c4); color: var(--c4); }
+  .node.active { box-shadow: 0 0 0 3px currentColor inset, 0 6px 20px rgba(0,0,0,.35); }
+
+  /* --- Steps (chunked + collapsible) -------------------------------- */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step { border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; background: var(--panel); overflow: hidden; }
+  .step.s1 { border-left-color: var(--c1); } .step.s2 { border-left-color: var(--c2); }
+  .step.s3 { border-left-color: var(--c3); } .step.s4 { border-left-color: var(--c4); }
+  .step.active { box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+  .step > button {
+    width: 100%; text-align: left; background: transparent; border: 0; color: var(--text);
+    padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600;
+  }
+  .step .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; flex: 0 0 auto; color: #0b0d12; }
+  .s1 .num { background: var(--c1); } .s2 .num { background: var(--c2); }
+  .s3 .num { background: var(--c3); } .s4 .num { background: var(--c4); }
+  .step .chev { margin-left: auto; color: var(--muted); transition: transform .18s; }
+  .step.open .chev { transform: rotate(90deg); }
+  .step .body { display: none; padding: 0 18px 18px 56px; color: var(--muted); }
+  .step.open .body { display: block; }
+  .step .body p { margin: 0 0 12px; }
+  pre { background: #0b0d12; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0 0 12px; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+  .tech { display: none; }            /* hidden until Technical layer chosen */
+  body.show-tech .tech { display: block; }
+  body.show-tech .plain-only { display: none; }
+
+  /* --- Jargon tooltip ----------------------------------------------- */
+  .term { border-bottom: 1px dashed var(--accent); cursor: help; position: relative; color: var(--text); }
+  .term:hover::after {
+    content: attr(data-def); position: absolute; left: 0; bottom: 130%;
+    width: 240px; background: #0b0d12; color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; font-weight: 400; z-index: 30;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  }
+
+  /* --- Check for understanding (active learning) -------------------- */
+  .quiz { margin-top: 30px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .quiz h3 { margin: 0 0 8px; font-size: 16px; }
+  .quiz p { margin: 0 0 12px; color: var(--muted); }
+  .quiz button { background: var(--accent); color: #0b0d12; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 700; cursor: pointer; }
+  .quiz .answer { display: none; margin-top: 14px; padding: 12px 14px; background: var(--panel-2); border-radius: 8px; color: var(--text); }
+  .quiz.revealed .answer { display: block; }
+  .quiz.revealed button { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <!-- EDIT: title -->
+    <h1>How Binary Search Works</h1>
+    <!-- EDIT: the WHAT — one plain sentence -->
+    <p class="what">Binary search finds a target in a <em>sorted</em> list by repeatedly halving the part of the list it still needs to look at.</p>
+    <!-- EDIT: the WHY — the motivation -->
+    <div class="why"><strong>Why it exists:</strong> checking every item one by one is slow for large lists. Binary search throws away half the remaining items on every step, so a list of a million only takes ~20 checks instead of a million.</div>
+  </header>
+
+  <!-- Progressive disclosure: choose depth -->
+  <div class="toolbar">
+    <span class="label">Depth:</span>
+    <div class="toggle">
+      <button id="btn-plain" class="active">Plain English</button>
+      <button id="btn-tech">Technical</button>
+    </div>
+    <span class="label" style="margin-left:auto">Click a box or a step to highlight it ↓</span>
+  </div>
+
+  <!-- Analogy: must MIRROR the mechanism, not just be thematic -->
+  <div class="analogy">
+    <div class="icon">📖</div>
+    <div>
+      <!-- EDIT: analogy -->
+      <h3>Like finding a word in a dictionary</h3>
+      <p>You don't read page 1, 2, 3… You flip to the middle. Too far? Ignore the whole second half. Not far enough? Ignore the first half. Each flip discards half the book — exactly what binary search does to the list.</p>
+    </div>
+  </div>
+
+  <!-- Diagram: nodes are COLOR-LINKED to the steps below (Dual Coding) -->
+  <div class="diagram">
+    <h3>The loop at a glance</h3>
+    <div class="flow">
+      <!-- EDIT: nodes; data-step links node -> step id -->
+      <div class="node n1" data-step="1">① Look at the middle</div>
+      <span class="arrow">→</span>
+      <div class="node n2" data-step="2">② Found it?</div>
+      <span class="arrow">→</span>
+      <div class="node n3" data-step="3">③ Too small? go right</div>
+      <span class="arrow">→</span>
+      <div class="node n4" data-step="4">④ Too big? go left, repeat</div>
+    </div>
+  </div>
+
+  <!-- Steps: ONE chunk each, collapsible, default high-level ----------- -->
+  <div class="steps">
+
+    <!-- EDIT: step 1 -->
+    <div class="step s1" data-step="1">
+      <button><span class="num">1</span> Jump to the middle item</button>
+      <div class="body">
+        <p>Track two ends — a <span class="term" data-def="The index of the first item still in play.">low</span> and a <span class="term" data-def="The index of the last item still in play.">high</span> pointer. Look at the item halfway between them.</p>
+        <p class="plain-only">Think of it as opening the book right in the center of the pages you haven't ruled out yet.</p>
+        <pre class="tech"><code>mid = (low + high) // 2
+guess = arr[mid]</code></pre>
+      </div>
+    </div>
+
+    <!-- EDIT: step 2 -->
+    <div class="step s2" data-step="2">
+      <button><span class="num">2</span> Is the middle item your target?</button>
+      <div class="body">
+        <p>If the middle item equals what you're looking for, you're done — return its position.</p>
+        <pre class="tech"><code>if guess == target:
+    return mid   # found it</code></pre>
+      </div>
+    </div>
+
+    <!-- EDIT: step 3 -->
+    <div class="step s3" data-step="3">
+      <button><span class="num">3</span> Too small? Throw away the left half</button>
+      <div class="body">
+        <p>If the middle item is smaller than the target, the target can only be to the right. Move <span class="term" data-def="The index of the first item still in play.">low</span> just past the middle.</p>
+        <pre class="tech"><code>elif guess &lt; target:
+    low = mid + 1</code></pre>
+      </div>
+    </div>
+
+    <!-- EDIT: step 4 -->
+    <div class="step s4" data-step="4">
+      <button><span class="num">4</span> Too big? Throw away the right half, then repeat</button>
+      <div class="body">
+        <p>If the middle item is bigger, the target is to the left, so move <span class="term" data-def="The index of the last item still in play.">high</span> just before the middle. Then loop back to step 1 with the smaller range. Stop when low passes high — the target isn't there.</p>
+        <pre class="tech"><code>else:
+    high = mid - 1
+# loop continues while low &lt;= high</code></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Active learning: predict, don't ask "make sense?" ---------------- -->
+  <div class="quiz" id="quiz">
+    <h3>Check yourself</h3>
+    <!-- EDIT: a predict-the-next-step question -->
+    <p>The list is <code>[2, 5, 8, 12, 16, 23, 38]</code> and you're searching for <code>5</code>. The middle item is <code>12</code>. What happens next?</p>
+    <button id="reveal">Reveal answer</button>
+    <div class="answer">
+      <!-- EDIT: answer -->
+      12 is bigger than 5, so we throw away everything from 12 rightward (step 4) and search only <code>[2, 5, 8]</code>. Next middle is <code>5</code> → found on the very next check.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- Depth toggle (Progressive Disclosure) ---
+  const btnPlain = document.getElementById('btn-plain');
+  const btnTech  = document.getElementById('btn-tech');
+  btnPlain.onclick = () => { document.body.classList.remove('show-tech'); btnPlain.classList.add('active'); btnTech.classList.remove('active'); };
+  btnTech.onclick  = () => { document.body.classList.add('show-tech');    btnTech.classList.add('active');  btnPlain.classList.remove('active'); };
+
+  // --- Link diagram nodes <-> steps (Dual Coding) ---
+  const nodes = [...document.querySelectorAll('.node')];
+  const steps = [...document.querySelectorAll('.step')];
+
+  function focusStep(id, openIt) {
+    nodes.forEach(n => n.classList.toggle('active', n.dataset.step === id));
+    nodes.forEach(n => n.classList.toggle('dim', n.dataset.step !== id));
+    steps.forEach(s => {
+      const match = s.dataset.step === id;
+      s.classList.toggle('active', match);
+      if (openIt && match) s.classList.add('open');
+    });
+  }
+  function clearFocus() { nodes.forEach(n => n.classList.remove('active','dim')); steps.forEach(s => s.classList.remove('active')); }
+
+  nodes.forEach(n => {
+    n.onclick = () => {
+      const s = steps.find(st => st.dataset.step === n.dataset.step);
+      focusStep(n.dataset.step, true);
+      s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+  });
+
+  // --- Collapsible steps (Cognitive Load: reveal one chunk at a time) ---
+  steps.forEach(s => {
+    s.querySelector('button').onclick = () => {
+      const willOpen = !s.classList.contains('open');
+      s.classList.toggle('open');
+      if (willOpen) focusStep(s.dataset.step, false); else clearFocus();
+    };
+  });
+
+  // --- Quiz reveal (active learning) ---
+  document.getElementById('reveal').onclick = () => document.getElementById('quiz').classList.add('revealed');
+</script>
+</body>
+</html>

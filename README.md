@@ -42,6 +42,13 @@ What makes it different from generic "Go best practices": **every non-trivial cl
 | [go-observability](skills/go-observability/SKILL.md) | Prometheus metrics + naming, structured `slog`, contextual logging, tracing. |
 | [go-testing](skills/go-testing/SKILL.md) | Table-driven subtests, `t.Parallel`, benchmarks, fuzzing, golden files. |
 
+**Review & understanding**
+
+| Skill | What it covers |
+|-------|----------------|
+| [go-adversarial-qa](skills/go-adversarial-qa/SKILL.md) | Break a function before prod does — Toddler (bad input), Hoarder (scale), Inversion (failing deps). Locates breaks, doesn't fix. |
+| [explaining-code-logic](skills/explaining-code-logic/SKILL.md) | Explain gnarly logic to a human with an interactive, input-driven step-tracer instead of a wall of text. |
+
 ## Skill map
 
 These skills are **atomic, cross-referencing units**. Load `go-clean-code` first — it routes to every specialist; the specialists cross-link where their concerns touch. Installing a subset still works, but the full set gives a consistent view.
@@ -264,7 +271,7 @@ A clean run (no `MISSING`) means all 25 cited files resolve. Several upstream pr
 god-tier-go-skills/
 ├── README.md              # you are here
 ├── LICENSE
-├── skills/                # the 12 skills (+ catalog README)
+├── skills/                # the 14 skills (+ catalog README)
 └── docs/                  # design spec and implementation plan
 ```
 

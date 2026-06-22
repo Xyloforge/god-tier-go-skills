@@ -181,3 +181,4 @@ actually exercises production behavior.
 - [[go-concurrency]] — the `-race` detector and concurrent test isolation.
 - [[go-error-handling]] — assert error branches with `errors.Is`/`As`.
 - [[go-clean-code]] — tests are code; keep them readable too.
+- [[go-adversarial-qa]] — find the break first; each one becomes a table row or fuzz seed here.
